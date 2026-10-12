@@ -289,6 +289,8 @@
         },
         {
             "name": "sertos_scheduler_delay",
+            "category": "scheduling_primitive",
+            "switch_overhead": "PendSV_Handler",
             "measured_includes_blocking": true,
             "blocking_bound": {
                 "blocked_ticks": 10,
