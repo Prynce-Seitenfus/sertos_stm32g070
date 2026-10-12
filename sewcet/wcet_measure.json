@@ -289,8 +289,6 @@
         },
         {
             "name": "sertos_scheduler_delay",
-            "extra_cycles": 250,
-            "extra_cycles_reason": "In explicit scope mode (PROFILER_APP_SCOPES), PROFILER_SCOPE wraps the call site in sertos_task_profiler. The measured active duration includes call-site probe overhead, call instructions, and PendSV context switch entry/exit (~195 cycles).",
             "measured_includes_blocking": true,
             "blocking_bound": {
                 "blocked_ticks": 10,
