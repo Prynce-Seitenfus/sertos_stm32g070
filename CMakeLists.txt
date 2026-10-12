@@ -143,8 +143,8 @@ target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:C>:-fopt-info-inline-missed>"
 )
 
-# Profiler duration semantics: WALL (inclusive of preemption) or ACTIVE (CPU time only).
-set(PROFILER_APP_TIME_MODE "WALL" CACHE STRING "Profiler time mode (WALL or ACTIVE)")
+# Profiler duration semantics: ACTIVE (CPU time only, default) or WALL (inclusive of preemption).
+set(PROFILER_APP_TIME_MODE "ACTIVE" CACHE STRING "Profiler time mode (WALL or ACTIVE)")
 set_property(CACHE PROFILER_APP_TIME_MODE PROPERTY STRINGS WALL ACTIVE)
 if(PROFILER_APP_TIME_MODE STREQUAL "ACTIVE")
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PROFILER_APP_TIME_MODE=1)

@@ -18,6 +18,9 @@ if /i "%~1"=="--help" goto :show_help
 if /i "%~1"=="debug" goto :parse_debug
 if /i "%~1"=="release" goto :parse_release
 if /i "%~1"=="renode" goto :parse_renode
+if /i "%~1"=="measure" goto :parse_measure
+if /i "%~1"=="renodemeasure" goto :parse_renodemeasure
+if /i "%~1"=="-m" goto :parse_measure_flag
 echo [ERROR] Unknown option: %~1
 goto :invalid_args
 
@@ -43,6 +46,25 @@ goto :parse_args
 
 :parse_renode
 set "BUILD_CONFIG=Renode"
+shift
+goto :parse_args
+
+:parse_measure
+set "BUILD_CONFIG=Measure"
+shift
+goto :parse_args
+
+:parse_renodemeasure
+set "BUILD_CONFIG=RenodeMeasure"
+shift
+goto :parse_args
+
+:parse_measure_flag
+if /i "%BUILD_CONFIG%"=="Renode" (
+    set "BUILD_CONFIG=RenodeMeasure"
+) else (
+    set "BUILD_CONFIG=Measure"
+)
 shift
 goto :parse_args
 
@@ -110,22 +132,28 @@ exit /b 0
 
 :show_help
 echo.
-echo Usage: build.bat [Debug^|Release^|Renode] [-c] [-i]
+echo Usage: build.bat [Debug^|Release^|Renode^|Measure^|RenodeMeasure] [-c] [-i] [-m]
 echo.
 echo Options:
-echo   Debug    Build the Debug preset (default)
-echo   Release  Build the Release preset
-echo   Renode   Build the Renode preset
-echo   -c       Clean the selected preset outputs before building
-echo   -i  Build the instrumented SertOS library and instrument selected app sources
-echo   -h  Show this help
+echo   Debug          Build the Debug preset (default)
+echo   Release        Build the Release preset
+echo   Renode         Build the Renode preset
+echo   Measure        Build the Measure preset (uninstrumented, scoped)
+echo   RenodeMeasure  Build the RenodeMeasure preset (uninstrumented, scoped)
+echo   -c             Clean the selected preset outputs before building
+echo   -i             Build the instrumented SertOS library and instrument selected app sources
+echo   -m             Select Measure preset (Measure or RenodeMeasure)
+echo   -h             Show this help
 echo.
 echo Examples:
 echo   build.bat
 echo   build.bat Release
 echo   build.bat Renode
+echo   build.bat Measure
+echo   build.bat RenodeMeasure
+echo   build.bat Renode -m
+echo   build.bat -m -c
 echo   build.bat -i
-echo   build.bat Release -c
 echo   build.bat Renode -i
 echo   build.bat -c -i
 echo.
@@ -134,7 +162,7 @@ endlocal
 exit /b 0
 
 :invalid_args
-echo Usage: build.bat [Debug^|Release^|Renode] [-c] [-i]
+echo Usage: build.bat [Debug^|Release^|Renode^|Measure^|RenodeMeasure] [-c] [-i] [-m]
 popd
 endlocal
 exit /b 2

@@ -56,9 +56,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-if (($ProfilerSocketPort -ne 0) -and ($Config -ne 'Renode')) {
-    throw "Profiler socket mode requires the Renode build preset. Configure and build with " +
-          "'cmake --preset Renode' and 'cmake --build --preset Renode', then pass -Config Renode."
+if (($ProfilerSocketPort -ne 0) -and ($Config -ne 'Renode') -and ($Config -ne 'RenodeMeasure')) {
+    throw "Profiler socket mode requires the Renode or RenodeMeasure build preset. Configure and build with " +
+          "'cmake --preset Renode' or 'cmake --preset RenodeMeasure', then pass -Config Renode or -Config RenodeMeasure."
 }
 
 if ($ProfilerSocketPort -eq 0) {

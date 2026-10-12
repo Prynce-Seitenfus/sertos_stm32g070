@@ -52,15 +52,18 @@ cmake --preset Debug
 cmake --build --preset Debug
 ```
 
-On Windows, `build.bat` supports the `Debug`, `Release`, and `Renode` presets
+On Windows, `build.bat` supports the `Debug`, `Release`, `Renode`, `Measure`, and `RenodeMeasure` presets
 (`Debug` is the default):
 
 ```powershell
 .\build.bat
 .\build.bat Release
 .\build.bat Renode
-.\build.bat -i
-.\build.bat Release -c
+.\build.bat Measure            # uninstrumented, explicit call-site scopes
+.\build.bat RenodeMeasure      # uninstrumented Renode emulator build with scopes
+.\build.bat Renode -m          # equivalent to RenodeMeasure
+.\build.bat -m -c              # clean build of Measure
+.\build.bat -i                 # full compiler instrumentation (-finstrument-functions)
 .\build.bat Renode -i
 .\build.bat -c -i
 ```
