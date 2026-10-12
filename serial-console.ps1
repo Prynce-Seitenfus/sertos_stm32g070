@@ -41,7 +41,8 @@ param(
     [System.IO.Ports.StopBits] $StopBits = [System.IO.Ports.StopBits]::One,
     [ValidateSet('CRLF', 'LF', 'CR')]
     [string] $NewLine = 'CRLF',
-    [string] $LogFile
+    [string] $LogFile,
+    [string] $CaptureDump
 )
 
 $ErrorActionPreference = 'Stop'
@@ -247,6 +248,11 @@ function Capture-ProfilerDump([System.IO.Ports.SerialPort]$serialPort, [string]$
 try {
     $port.Open()
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+    if ($CaptureDump) {
+        Capture-ProfilerDump -serialPort $port -outputFile $CaptureDump
+        return
+    }
 
     Write-Host "============================================================" -ForegroundColor Green
     Write-Host " STM32G070 Serial CLI Console" -ForegroundColor Green
