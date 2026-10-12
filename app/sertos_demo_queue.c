@@ -24,12 +24,11 @@ SertosStatus sertos_demo_queue_init(SertosDemoQueue** out_queue)
     }
 
     *out_queue = NULL;
-    PROFILER_SCOPE(sertos_queue_create_static,
-                   status = sertos_queue_create_static(&s_demo_queue.queue,
-                                                       s_demo_queue.storage,
-                                                       sizeof(s_demo_queue.storage),
-                                                       sizeof(SertosDemoQueueItem),
-                                                       &s_demo_queue.handle));
+    status = sertos_queue_create_static(&s_demo_queue.queue,
+                                        s_demo_queue.storage,
+                                        sizeof(s_demo_queue.storage),
+                                        sizeof(SertosDemoQueueItem),
+                                        &s_demo_queue.handle);
     if (status == SERTOS_STATUS_OK) {
         *out_queue = &s_demo_queue;
     }
@@ -41,26 +40,20 @@ SertosStatus sertos_demo_queue_send(SertosDemoQueue* queue,
                                     const SertosDemoQueueItem* item,
                                     SertosTick timeout)
 {
-    SertosStatus status;
-
     if ((queue == NULL) || (item == NULL)) {
         return SERTOS_STATUS_ERROR_NULL_PTR;
     }
 
-    PROFILER_SCOPE(sertos_queue_send, status = sertos_queue_send(queue->handle, item, timeout));
-    return status;
+    return sertos_queue_send(queue->handle, item, timeout);
 }
 
 SertosStatus sertos_demo_queue_receive(SertosDemoQueue* queue,
                                        SertosDemoQueueItem* item,
                                        SertosTick timeout)
 {
-    SertosStatus status;
-
     if ((queue == NULL) || (item == NULL)) {
         return SERTOS_STATUS_ERROR_NULL_PTR;
     }
 
-    PROFILER_SCOPE(sertos_queue_receive, status = sertos_queue_receive(queue->handle, item, timeout));
-    return status;
+    return sertos_queue_receive(queue->handle, item, timeout);
 }

@@ -105,7 +105,7 @@ void sertos_task_profiler(void* param)
             }
         }
 
-        PROFILER_SCOPE(sertos_scheduler_delay, (void)sertos_scheduler_delay(10U));
+        (void)sertos_scheduler_delay(10U);
     }
 }
 
