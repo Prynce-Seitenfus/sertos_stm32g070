@@ -6,10 +6,7 @@
             "hidden": true,
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
-		    "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
-            "cacheVariables": {
-                "PROFILER_APP_TIME_MODE": "ACTIVE"
-            }
+		    "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake"
         },
         {
             "name": "Debug",
@@ -28,25 +25,8 @@
             }
         },
         {
-            "name": "Renode",
-            "inherits": "default",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "PROFILER_PORT": "16bit_it",
-                "PROFILER_TRANSPORT": "uart_stm32_hal_it"
-            }
-        },
-        {
             "name": "Measure",
             "inherits": "Debug",
-            "cacheVariables": {
-                "SERTOS_APP_INSTRUMENTED": "OFF",
-                "PROFILER_APP_SCOPES": "ON"
-            }
-        },
-        {
-            "name": "RenodeMeasure",
-            "inherits": "Renode",
             "cacheVariables": {
                 "SERTOS_APP_INSTRUMENTED": "OFF",
                 "PROFILER_APP_SCOPES": "ON"
@@ -63,16 +43,8 @@
             "configurePreset": "Release"
         },
         {
-            "name": "Renode",
-            "configurePreset": "Renode"
-        },
-        {
             "name": "Measure",
             "configurePreset": "Measure"
-        },
-        {
-            "name": "RenodeMeasure",
-            "configurePreset": "RenodeMeasure"
         }
     ]
 }

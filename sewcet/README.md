@@ -42,18 +42,14 @@ Column and status legend: `<sewcet>/tools/README.md`.
   `wcet_over_exec_max` shows how pessimistic the bound is.
   `target_avg_cycles` and `renode_max_cycles` are informational (Renode is not
   cycle-accurate).
-- The firmware profiler runs with one shadow stack per task and a time mode
-  set by the CMake option `PROFILER_APP_TIME_MODE` (`WALL` by default,
-  `ACTIVE` optional). The dump header records the mode (`parse_prof_dump.py`
-  prints it). Capture both: `1.csv`/`1r.csv` (WALL) and `1a.csv`/`1ra.csv`
-  (ACTIVE, presets built with `-DPROFILER_APP_TIME_MODE=ACTIVE`).
-- In `WALL` captures, `*_receive` and `*_delay*` include time blocked in a
-  queue wait or delay. These functions are flagged
-  `measured_includes_blocking` in `wcet_targets.json` and get two checks:
-  - execution: `target_active_max_cycles` (`captures.target_active`, `../1a.csv`) must not exceed `wcet_cycles` (`VIOLATION`);
-  - latency: `target_max_cycles` (WALL) must not exceed `bound_cycles`, the
-    response-time bound from their `blocking_bound` spec
-    (`BOUND_VIOLATION`). `bound_over_target_max` shows its pessimism.
+- The current profiler library reports ACTIVE cycles and uses one shadow stack
+  per task; time spent while a task is switched out is excluded. Its dump header
+  records the mode. The previous WALL/ACTIVE capture pairs are historical; the
+  current firmware cannot generate WALL captures.
+- Current captures can check execution time: `target_active_max_cycles`
+  (`captures.target_active`) must not exceed `wcet_cycles` (`VIOLATION`).
+  WALL-based response-time checks for blocking calls require separate WALL
+  measurements; they cannot be derived from the current ACTIVE-only dump.
 
   `OK_EXEC`/`OK_BOUND` mean only one check had data; `BLOCKING` means none.
 - Response-time bound:
@@ -71,8 +67,9 @@ Column and status legend: `<sewcet>/tools/README.md`.
   --target 1a.csv --renode 1ra.csv --time-mode active`.
 - The script exits with 1 on `VIOLATION`, `BOUND_VIOLATION`, `NO_WCET` or
   `NO_BOUND_WCET`.
-- The Debug ELF is instrumented, so profiler hooks (`__cyg_profile_func_*`)
-  are analysed too (`instrumentation.include_profiler_hooks`).
+- Build Debug with `.\build.bat -i` to include compiler instrumentation; the
+  profiler hooks (`__cyg_profile_func_*`) are then analysed too
+  (`instrumentation.include_profiler_hooks`).
 - Measured cycles also include interrupt preemption (TIM6 tick, TIM1 profiler
   overflow, USART2); the WCET does not.
 

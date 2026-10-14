@@ -10,7 +10,7 @@
     TCP port selected when starting Renode. Defaults to 3456.
 
 .PARAMETER OutputFile
-    Destination file for the raw PROF-BIN v2 packet.
+    Destination file for the raw PROF-BIN v4 packet.
 
 .PARAMETER TimeoutSeconds
     Maximum time to wait for the complete response.

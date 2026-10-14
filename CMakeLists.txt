@@ -42,7 +42,7 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
-# Configure paths to the shared SertOS and profiler repositories
+# Configure paths to the shared SertOS, profiler, and stream repositories
 set(SERTOS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../sertos" CACHE PATH "Path to the SertOS root directory")
 if(SERTOS_APP_INSTRUMENTED)
     set(SERTOS_LIB_NAME "libsertos_cortex_m0plus_instrumented.a")
@@ -62,37 +62,40 @@ if(NOT DEFINED SERTOS_LIB_PATH OR
 endif()
 set(SERTOS_LIB_PATH_DEFAULT "${_SERTOS_LIB_PATH_DEFAULT}" CACHE INTERNAL
     "Default SertOS library path for the selected instrumentation mode" FORCE)
-set(PROFILER_DEFAULT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/profiler")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../profiler/CMakeLists.txt")
-    set(PROFILER_DEFAULT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../profiler")
-endif()
-set(STREAM_DEFAULT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/stream")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../stream/stream.c")
-    set(STREAM_DEFAULT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../stream")
-endif()
-set(PROFILER_DIR "${PROFILER_DEFAULT_DIR}" CACHE PATH "Path to the profiler module")
-set(STREAM_DIR "${STREAM_DEFAULT_DIR}" CACHE PATH "Path to the stream module")
-set(HASHMAP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../hashmap" CACHE PATH "Path to the hashmap module")
+set(PROFILER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../profiler" CACHE PATH "Path to the profiler repository")
+set(STREAM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../stream" CACHE PATH "Path to the stream repository")
 set(PROFILER_PORT "2x16bit" CACHE STRING "Profiler port backend")
-set(PROFILER_TRANSPORT "uart_stm32_hal_dma" CACHE STRING "Profiler transport backend")
-
 if(NOT EXISTS "${SERTOS_LIB_PATH}")
     message(FATAL_ERROR "Pre-compiled SertOS library not found at '${SERTOS_LIB_PATH}'. Build the Cortex-M0+ target in '${SERTOS_DIR}' first.")
 endif()
 
-if(NOT EXISTS "${PROFILER_DIR}/profiler.c")
-    message(FATAL_ERROR "Profiler module not found at '${PROFILER_DIR}'. Set PROFILER_DIR to an initialized profiler checkout.")
+set(PROFILER_LIB_PATH "${PROFILER_DIR}/lib/arm/libprofiler_cortex_m0plus.a")
+if(NOT EXISTS "${PROFILER_LIB_PATH}")
+    message(FATAL_ERROR "Pre-compiled profiler library not found at '${PROFILER_LIB_PATH}'. Build the Cortex-M0+ target in '${PROFILER_DIR}' first.")
 endif()
-if(NOT EXISTS "${PROFILER_DIR}/CMakeLists.txt")
-    message(FATAL_ERROR "Profiler CMake target not found at '${PROFILER_DIR}'. Update the profiler module to the transport-port revision.")
-endif()
-
-if(NOT EXISTS "${STREAM_DIR}/stream.c")
-    message(FATAL_ERROR "Stream module not found at '${STREAM_DIR}'. Initialize project submodules with 'git submodule update --init --recursive'.")
+if(NOT EXISTS "${PROFILER_DIR}/profiler.h")
+    message(FATAL_ERROR "Profiler headers not found at '${PROFILER_DIR}'. Set PROFILER_DIR to the profiler repository.")
 endif()
 
-add_subdirectory("${PROFILER_DIR}" profiler_build)
-target_link_libraries(profiler PRIVATE stm32cubemx)
+if(NOT EXISTS "${STREAM_DIR}/stream.h")
+    message(FATAL_ERROR "Stream headers not found at '${STREAM_DIR}'. Set STREAM_DIR to the stream repository.")
+endif()
+
+if(PROFILER_PORT STREQUAL "16bit_it")
+    set(PROFILER_PORT_SOURCE "${PROFILER_DIR}/port/profiler_port_16bit_it.c")
+elseif(PROFILER_PORT STREQUAL "2x16bit")
+    set(PROFILER_PORT_SOURCE "${PROFILER_DIR}/port/profiler_port_2x16bit.c")
+else()
+    message(FATAL_ERROR "Unsupported PROFILER_PORT '${PROFILER_PORT}' for this project")
+endif()
+
+set(PROFILER_TRANSPORT_SOURCE "${PROFILER_DIR}/port/profiler_transport_uart_it.c")
+
+foreach(PROFILER_SOURCE IN ITEMS "${PROFILER_PORT_SOURCE}" "${PROFILER_TRANSPORT_SOURCE}")
+    if(NOT EXISTS "${PROFILER_SOURCE}")
+        message(FATAL_ERROR "Profiler backend source not found at '${PROFILER_SOURCE}'")
+    endif()
+endforeach()
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -104,6 +107,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/app/sertos_demo_queue.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/app/profiler_port.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/app/profiler_context_sertos.c"
+    "${PROFILER_PORT_SOURCE}"
+    "${PROFILER_TRANSPORT_SOURCE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/app/sertos_port.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/app/sertos_task_producer.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/app/sertos_task_consumer.c"
@@ -122,6 +127,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     "${SERTOS_DIR}/modules/memory_pool"
     "${SERTOS_DIR}/modules/crc"
     "${SERTOS_DIR}/modules/fsm"
+    "${PROFILER_DIR}"
+    "${PROFILER_DIR}/port"
+    "${STREAM_DIR}"
 )
 
 # Add project symbols (macros)
@@ -135,24 +143,13 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-    profiler
+    "${PROFILER_LIB_PATH}"
     "${SERTOS_LIB_PATH}"
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:C>:-fopt-info-inline-missed>"
 )
-
-# Profiler duration semantics: ACTIVE (CPU time only, default) or WALL (inclusive of preemption).
-set(PROFILER_APP_TIME_MODE "ACTIVE" CACHE STRING "Profiler time mode (WALL or ACTIVE)")
-set_property(CACHE PROFILER_APP_TIME_MODE PROPERTY STRINGS WALL ACTIVE)
-if(PROFILER_APP_TIME_MODE STREQUAL "ACTIVE")
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PROFILER_APP_TIME_MODE=1)
-elseif(PROFILER_APP_TIME_MODE STREQUAL "WALL")
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PROFILER_APP_TIME_MODE=0)
-else()
-    message(FATAL_ERROR "PROFILER_APP_TIME_MODE must be WALL or ACTIVE")
-endif()
 
 # Explicit call-site scopes: uninstrumented code, same binary as the WCET analysis.
 if(PROFILER_APP_SCOPES)

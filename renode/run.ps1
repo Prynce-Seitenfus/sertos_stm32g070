@@ -22,8 +22,8 @@
     Override the ELF path entirely. Takes precedence over -Config.
 
 .PARAMETER ProfilerSocketPort
-    Expose USART2 through a Renode TCP socket terminal on this port. Use
-    capture-profiler-dump.ps1 from another terminal to request and save a PROF-BIN dump.
+    Expose USART2 through a Renode TCP socket terminal on this port. Connect
+    with Ncat for interactive use or use capture-profiler-dump.ps1 for a PROF-BIN dump.
     Zero keeps the normal UART analyzer mode.
 
 .PARAMETER Extra
@@ -40,10 +40,11 @@
     .\renode\run.ps1 -Elf C:\tmp\other.elf -RenodePath 'C:\renode\1.17.0\renode.exe'
 
 .EXAMPLE
-    .\renode\run.ps1 -Config Renode -ProfilerSocketPort 3456
+    .\renode\run.ps1 -Config Debug -ProfilerSocketPort 3456
 #>
 [CmdletBinding()]
 param(
+    [ValidateSet('Debug', 'Release', 'Measure')]
     [string]   $Config     = 'Debug',
     [string]   $RenodePath = 'C:\renode\1.17.0\renode.exe',
     [switch]   $Headless,
@@ -56,10 +57,6 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-if (($ProfilerSocketPort -ne 0) -and ($Config -ne 'Renode') -and ($Config -ne 'RenodeMeasure')) {
-    throw "Profiler socket mode requires the Renode or RenodeMeasure build preset. Configure and build with " +
-          "'cmake --preset Renode' or 'cmake --preset RenodeMeasure', then pass -Config Renode or -Config RenodeMeasure."
-}
 
 if ($ProfilerSocketPort -eq 0) {
     $rescScript = Join-Path $PSScriptRoot 'sertos_stm32g070.resc'

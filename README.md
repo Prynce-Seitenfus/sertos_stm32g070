@@ -1,146 +1,200 @@
-# sertos_stm32g070
+# SerTOS STM32G070 Demo
 
-Demo firmware showing [SerTOS](https://github.com/Prynce-Seitenfus) running on an
-STM32G070RB (Cortex-M0+, LQFP64) target. The project is STM32CubeMX-generated and
-built with CMake/Ninja against the pre-compiled SerTOS Cortex-M0+ static library,
-and can run on real hardware or inside the Renode emulator.
+Demo firmware for [SerTOS](https://github.com/Prynce-Seitenfus/sertos) running
+on an STM32G070RB (Cortex-M0+, LQFP64). The STM32CubeMX-generated project uses
+CMake and Ninja and can run on hardware or in Renode.
 
-## What it does
+## Demo
 
-The demo implements a simple producer/consumer pipeline on top of SerTOS:
+- The producer polls the user button on PC13. Debounced button presses toggle
+  whether it enqueues incrementing values in a statically allocated SerTOS
+  queue.
+- The consumer reads the queue and changes the green LED according to each
+  received value.
+- A profiler task measures selected application and SerTOS functions and
+  handles profiler commands over USART2 (PA2/PA3, 115200 baud, 8-N-1).
 
-- **Producer task** (`app/sertos_task_producer.c`) polls the user button (PC13).
-  Each loop it pushes an incrementing sequence number onto a statically allocated
-  SerTOS queue (`app/sertos_demo_queue.c`), and debounced button presses toggle a
-  paused state that stops new items from being enqueued.
-- **Consumer task** (`app/sertos_task_consumer.c`) blocks on the same queue and
-  drives the green LED based on the received sequence value.
-- **Profiler task** (`app/sertos_task_profiler.c`, backed by the `modules/profiler`
-  submodule) captures scheduler/function instrumentation events and streams
-  commands/results over USART2 (PA2/PA3, 115200-8-N-1).
+The profiler reports **active CPU cycles**: time while a task is switched out
+is excluded. The `Measure` preset collects selected call sites using explicit profiler
+scopes; instrumented builds collect function calls as well. The profiler UART
+uses the interrupt-driven (IT) backend in every build configuration, so the
+same Debug or Measure firmware works on hardware and in Renode.
 
 ## Repository layout
 
-| Path                     | Contents                                                              |
-|---------------------------|------------------------------------------------------------------------|
-| `Core/`                  | STM32CubeMX-generated HAL/CMSIS startup, `main.c`, and board config     |
-| `Drivers/`               | STM32 HAL and CMSIS driver sources pulled in by CubeMX                  |
-| `app/`                   | Application tasks: producer, consumer, profiler, and SerTOS port layer |
-| `modules/profiler`       | Git submodule with the instrumentation-based profiler module           |
-| `cmake/`                 | Toolchain file and STM32CubeMX-generated CMake target                  |
-| `renode/`                | Renode platform script and `run.ps1` launcher for emulated runs         |
-| `sertos_stm32g070.ioc`   | STM32CubeMX project file (pin/clock configuration)                      |
-| `CMakeLists.txt`         | Top-level build: links the app against the SerTOS library and profiler  |
+| Path | Contents |
+| --- | --- |
+| `Core/`, `Drivers/` | STM32CubeMX-generated startup, HAL, and CMSIS sources |
+| `app/` | Demo tasks, queue, profiler integration, and SerTOS port |
+| `cmake/` | ARM toolchain and STM32CubeMX CMake configuration |
+| `renode/` | Renode machine scripts, launcher, and profiler-dump capture script |
+| `sewcet/` | WCET analysis configuration for this firmware |
+| `CMakeLists.txt`, `CMakePresets.json` | Firmware targets and build configurations |
+| `build.bat` | Windows build wrapper |
+| `burn.ps1` | ST-LINK/SWD programming wrapper |
+| `serial-console.ps1` | Interactive terminal for a physical serial COM port |
 
 ## Prerequisites
 
-- A sibling checkout of the `sertos` repository (expected at `../sertos` relative
-  to this project) with the Cortex-M0+ library already built at
-  `sertos/lib/arm/libsertos_cortex_m0plus.a`.
-- A sibling checkout of `profiler` at `../profiler`, including its transport-port
-  `CMakeLists.txt` and `parse_prof_dump.py`, and a sibling `hashmap` checkout at
-  `../hashmap`. The checked-in `modules/profiler` submodule revision does not
-  contain the CMake target required by this project.
-- The `modules/profiler` submodule initialized (`git submodule update --init --recursive`).
-- `arm-none-eabi-gcc`, CMake 3.22+, and Ninja.
-- Optional: [Renode](https://renode.io/) for emulated runs without hardware.
+The CMake project expects these sibling checkouts:
 
-## Building
+```text
+<workspace>\
+  sertos\
+  profiler\
+  stream\
+  sertos_stm32g070\
+```
+
+The `sertos` checkout must contain the built Cortex-M0+ library
+`sertos\lib\arm\libsertos_cortex_m0plus.a`. The `profiler` checkout must
+contain `lib\arm\libprofiler_cortex_m0plus.a` and the selected backend sources
+under `port\`. The `stream` checkout provides the profiler transport headers.
+Set the CMake cache paths `SERTOS_DIR`, `PROFILER_DIR`, or `STREAM_DIR` if your
+checkouts are elsewhere.
+
+Install CMake 3.22 or newer, Ninja, and the GNU Arm Embedded toolchain
+(`arm-none-eabi-gcc`). To use Renode, install Renode separately. To connect to
+its TCP terminal interactively, install Ncat (included with Nmap). On Windows,
+Nmap can be installed with:
+
+```powershell
+winget install --id Insecure.Nmap --exact
+```
+
+## Build
+
+Run these commands from the repository root:
 
 ```powershell
 cmake --preset Debug
 cmake --build --preset Debug
 ```
 
-On Windows, `build.bat` supports the `Debug`, `Release`, `Renode`, `Measure`, and `RenodeMeasure` presets
-(`Debug` is the default):
+The Windows wrapper configures and builds in one step:
 
 ```powershell
-.\build.bat
+.\build.bat                 # Debug
 .\build.bat Release
-.\build.bat Renode
-.\build.bat Measure            # uninstrumented, explicit call-site scopes
-.\build.bat RenodeMeasure      # uninstrumented Renode emulator build with scopes
-.\build.bat Renode -m          # equivalent to RenodeMeasure
-.\build.bat -m -c              # clean build of Measure
-.\build.bat -i                 # full compiler instrumentation (-finstrument-functions)
-.\build.bat Renode -i
+.\build.bat Measure
+```
+
+| Configuration | Profiler setup |
+| --- | --- |
+| `Debug` | Timer overflow-interrupt port; application instrumentation off |
+| `Release` | Cascaded 16-bit timer port; application instrumentation off |
+| `Measure` | Debug settings with explicit call-site scopes |
+
+Use `-i` to build the instrumented SerTOS library and instrument selected
+application sources. Use `-m` as a shortcut for the `Measure` preset, and `-c`
+to clean the selected configuration before building. For example:
+
+```powershell
+.\build.bat -i
+.\build.bat -m
 .\build.bat -c -i
 ```
 
-`-c` cleans the selected preset's build outputs before building. `-i` builds
-and links the instrumented Cortex-M0+ SerTOS library (instrumentation is
-limited to the SerTOS API translation units under `src/`) and enables
-`-finstrument-functions` for `app/sertos_demo_queue.c` and the producer,
-consumer, and profiler task files; it is off by default. Instrumented builds
-also use 1024-byte producer/consumer stacks to accommodate profiler hook stack
-usage. The profiler port implementation (`app/profiler_port.c`) remains
-uninstrumented to prevent recursive profiler callbacks.
-Internal scheduler and dependency helpers are marked
-`__attribute__((no_instrument_function))`, keeping the dump focused on
-application-used SerTOS APIs.
+Build artifacts are written to `build\<Configuration>\`, including
+`sertos_stm32g070.elf`.
 
-Use the `Release` preset for an optimized build. Build output is placed under
-`build/<Config>/sertos_stm32g070.elf`.
+## Run on hardware
 
-## Running on hardware
-
-Flash `build/<Config>/sertos_stm32g070.elf` to an STM32G070RB board with your
-preferred tool (e.g. STM32CubeProgrammer or OpenOCD), then observe the demo over
-USART2 (PA2/PA3, 115200-8-N-1) and the green LED. PC13 toggles the paused state
-of the producer task.
-
-To program an image over ST-LINK/SWD with the installed STM32CubeProgrammer:
+Flash the ELF with the ST-LINK/SWD programmer wrapper:
 
 ```powershell
 .\burn.ps1 .\build\Debug\sertos_stm32g070.elf
 ```
 
-The script also accepts raw `.bin` images, which it writes at flash address
-`0x08000000`.
+`burn.ps1` expects STM32CubeProgrammer's `STM32_Programmer_CLI.exe` at the path
+configured in that script. It also accepts HEX and raw BIN images; BIN files
+are written at flash address `0x08000000`.
 
-To open the interactive serial console CLI:
+Connect to the board's ST-LINK virtual COM port (or another serial adapter):
 
 ```powershell
-.\serial-console.ps1
-# Or specify explicit port/logging:
-.\serial-console.ps1 -PortName COM3 -BaudRate 115200 -LogFile session.log
+.\serial-console.ps1 COM3 -BaudRate 115200 -LogFile .\session.log
 ```
 
-## Running in Renode
+The COM port is a positional argument. Use `/help` for console commands and
+`/exit` or Ctrl+C to disconnect.
+
+## Run in Renode
+
+Build Debug (or Measure) and launch Renode with the same firmware configuration:
 
 ```powershell
+.\build.bat Debug
 .\renode\run.ps1 -Config Debug
 ```
 
-This launches Renode with the STM32G0 platform description, opens a UART
-analyzer attached to USART2, and loads the built ELF. Pass `-Headless` for a
-console-only run, or `-Elf <path>` to point at a different firmware image. See
-`renode\run.ps1 -?` for all parameters.
-
-### Capturing a profiler dump over TCP
-
-For a host-accessible profiler connection, build the instrumented Renode image
-and start Renode with the USART2 socket terminal enabled. The `-i` option is
-required to record function events; without it, the dump has no application or
-SerTOS function samples. The Renode preset selects the interrupt-driven,
-non-DMA UART backend because Renode's STM32G0 model does not complete the DMA
-path:
+This opens the USART2 analyzer window. Add `-Headless` to disable the GUI; the
+Renode monitor remains attached to the current PowerShell window. The launcher
+defaults to `C:\renode\1.17.0\renode.exe`; if Renode is installed elsewhere,
+pass its executable path with `-RenodePath`, for example:
 
 ```powershell
-.\build.bat Renode -i
-.\renode\run.ps1 -Config Renode -ProfilerSocketPort 3456
+.\renode\run.ps1 -Config Debug -Headless `
+    -RenodePath 'C:\Program Files\Renode\renode.exe'
 ```
 
-In a second PowerShell terminal, request and save one complete PROF-BIN v2
-packet:
+Type `quit` in the Renode monitor to stop the simulation.
+
+### Interactive USART2 terminal over TCP
+
+Expose USART2 on a TCP port. Debug and Measure both use the interrupt-driven
+UART backend required by the Renode STM32G0 model:
 
 ```powershell
-.\renode\capture-profiler-dump.ps1 -Port 3456 -OutputFile .\renode-profiler.bin
-python ..\profiler\parse_prof_dump.py .\renode-profiler.bin --elf .\build\Renode\sertos_stm32g070.elf
+.\build.bat Debug
+.\renode\run.ps1 -Config Debug -Headless -ProfilerSocketPort 3456
 ```
 
-The capture script sends `prof-dump`, skips any earlier USART2 text output,
-and saves exactly one binary packet. The default run mode continues to use the
-UART analyzer without opening a TCP port. The profiler socket terminal is
-unauthenticated; use it only on a trusted machine/network.
+If Renode is not at the launcher's default path, also pass `-RenodePath` as
+shown above. In a second PowerShell window, connect with Ncat:
+
+```powershell
+ncat 127.0.0.1 3456
+```
+
+Enter profiler commands such as `prof-help`, `prof-status`, `prof-top`, or
+`prof-reset`. Press Ctrl+C to disconnect Ncat; the Renode simulation continues
+running. If Ncat is not recognized after installing Nmap, open a new terminal
+or run `ncat.exe` using its full installation path.
+
+This socket is an unauthenticated terminal. Keep it on a trusted machine and
+network; do not expose it to untrusted networks.
+
+### Capture and parse a profiler dump
+
+Use `-i` for function-level instrumentation:
+
+```powershell
+.\build.bat Debug -i
+.\renode\run.ps1 -Config Debug -Headless -ProfilerSocketPort 3456
+```
+
+Or use the explicitly scoped call sites:
+
+```powershell
+.\build.bat Measure
+.\renode\run.ps1 -Config Measure -Headless -ProfilerSocketPort 3456
+```
+
+In another PowerShell window, capture a binary PROF-BIN v4 dump. The capture
+script connects to the TCP port itself, so disconnect Ncat before running it:
+
+```powershell
+.\renode\capture-profiler-dump.ps1 -Port 3456 `
+    -OutputFile .\build\renode-profiler.bin
+python ..\profiler\parse_prof_dump.py .\build\renode-profiler.bin `
+    --elf .\build\Debug\sertos_stm32g070.elf
+```
+
+When using `Measure`, change the ELF path to
+`.\build\Measure\sertos_stm32g070.elf`.
+
+Run the parser from this repository root. Resolving function addresses from the
+ELF also requires `arm-none-eabi-addr2line` to be available on `PATH`. `prof-dump`
+transmits binary data, so use the capture script rather than copying its output
+from a text terminal.
