@@ -44,7 +44,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#if defined(SERTOS_APP_INSTRUMENTED) || defined(PROFILER_SCOPES_ENABLED)
+#if defined(SERTOS_APP_INSTRUMENTED)
 #define SERTOS_DEMO_STACK_BYTES (1024U)
 #else
 #define SERTOS_DEMO_STACK_BYTES (256U)
@@ -139,14 +139,13 @@ int main(void)
 
     sertos_task_profiler_init();
 
-    PROFILER_SCOPE(sertos_scheduler_init_with_config,
-                   status = sertos_scheduler_init_with_config(&sertos_cfg));
+    status = sertos_scheduler_init_with_config(&sertos_cfg);
     if (status != SERTOS_STATUS_OK) {
         Error_Handler();
         return 0;
     }
 
-    PROFILER_SCOPE(sertos_demo_queue_init, status = sertos_demo_queue_init(&s_demo_queue));
+    status = sertos_demo_queue_init(&s_demo_queue);
     if (status != SERTOS_STATUS_OK) {
         Error_Handler();
         return 0;
@@ -159,10 +158,9 @@ int main(void)
     producer_config.stack_buffer = s_producer_stack;
     producer_config.stack_size = sizeof(s_producer_stack);
 
-    PROFILER_SCOPE(sertos_task_create_static,
-                   status = sertos_task_create_static(&producer_config,
-                                                      &s_producer_tcb,
-                                                      &s_producer_handle));
+    status = sertos_task_create_static(&producer_config,
+                                       &s_producer_tcb,
+                                       &s_producer_handle);
     if (status != SERTOS_STATUS_OK) {
         Error_Handler();
         return 0;
@@ -175,10 +173,9 @@ int main(void)
     consumer_config.stack_buffer = s_consumer_stack;
     consumer_config.stack_size = sizeof(s_consumer_stack);
 
-    PROFILER_SCOPE(sertos_task_create_static,
-                   status = sertos_task_create_static(&consumer_config,
-                                                      &s_consumer_tcb,
-                                                      &s_consumer_handle));
+    status = sertos_task_create_static(&consumer_config,
+                                       &s_consumer_tcb,
+                                       &s_consumer_handle);
     if (status != SERTOS_STATUS_OK) {
         Error_Handler();
         return 0;
@@ -191,10 +188,9 @@ int main(void)
     profiler_config.stack_buffer = s_profiler_stack;
     profiler_config.stack_size = sizeof(s_profiler_stack);
 
-    PROFILER_SCOPE(sertos_task_create_static,
-                   status = sertos_task_create_static(&profiler_config,
-                                                      &s_profiler_tcb,
-                                                      &s_profiler_handle));
+    status = sertos_task_create_static(&profiler_config,
+                                       &s_profiler_tcb,
+                                       &s_profiler_handle);
     if (status != SERTOS_STATUS_OK) {
         Error_Handler();
         return 0;

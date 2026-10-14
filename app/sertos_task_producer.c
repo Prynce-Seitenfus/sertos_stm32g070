@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 #include "gpio.h"
-#include "profiler.h"
 #include "sertos_demo_queue.h"
 #include "sertos_scheduler.h"
 #include "sertos_types.h"
@@ -35,9 +34,9 @@ void sertos_task_producer(void* param)
 
         if (paused == 0U) {
             item.value = ++sequence;
-            PROFILER_SCOPE(sertos_demo_queue_send, (void)sertos_demo_queue_send(queue, &item, SERTOS_NO_WAIT));
+            (void)sertos_demo_queue_send(queue, &item, SERTOS_NO_WAIT);
         }
 
-        PROFILER_SCOPE(sertos_scheduler_delay_ms, (void)sertos_scheduler_delay_ms(10U));
+        (void)sertos_scheduler_delay_ms(10U);
     }
 }

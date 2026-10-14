@@ -15,9 +15,9 @@ CMake and Ninja and can run on hardware or in Renode.
   handles profiler commands over USART2 (PA2/PA3, 115200 baud, 8-N-1).
 
 The profiler reports **active CPU cycles**: time while a task is switched out
-is excluded. The `Measure` preset collects selected call sites using explicit profiler
-scopes; instrumented builds collect function calls as well. The profiler UART
-uses the interrupt-driven (IT) backend in every build configuration, so the
+is excluded. `Debug -i` and the `Measure` preset collect function calls with
+compiler instrumentation. The profiler UART uses the interrupt-driven (IT)
+backend in every build configuration, so the
 same Debug or Measure firmware works on hardware and in Renode.
 
 ## Repository layout
@@ -47,9 +47,11 @@ The CMake project expects these sibling checkouts:
 ```
 
 The `sertos` checkout must contain the built Cortex-M0+ library
-`sertos\lib\arm\libsertos_cortex_m0plus.a`. The `profiler` checkout must
-contain `lib\arm\libprofiler_cortex_m0plus.a` and the selected backend sources
-under `port\`. The `stream` checkout provides the profiler transport headers.
+`sertos\lib\arm\libsertos_cortex_m0plus.a`. The `profiler` checkout must contain
+`lib\arm\libprofiler_cortex_m0plus.a` and the selected backend sources under
+`port\`. Rebuild the archive with `..\profiler\build.bat cortex-m0plus` after
+updating the profiler checkout. The `stream` checkout provides the profiler
+transport headers.
 Set the CMake cache paths `SERTOS_DIR`, `PROFILER_DIR`, or `STREAM_DIR` if your
 checkouts are elsewhere.
 
@@ -83,11 +85,12 @@ The Windows wrapper configures and builds in one step:
 | --- | --- |
 | `Debug` | Timer overflow-interrupt port; application instrumentation off |
 | `Release` | Cascaded 16-bit timer port; application instrumentation off |
-| `Measure` | Debug settings with explicit call-site scopes |
+| `Measure` | Debug settings with compiler instrumentation enabled |
 
 Use `-i` to build the instrumented SerTOS library and instrument selected
-application sources. Use `-m` as a shortcut for the `Measure` preset, and `-c`
-to clean the selected configuration before building. For example:
+application sources in Debug or Release. Measure enables instrumentation
+automatically. Use `-m` as a shortcut for the `Measure` preset, and `-c` to
+clean the selected configuration before building. For example:
 
 ```powershell
 .\build.bat -i
@@ -174,7 +177,7 @@ Use `-i` for function-level instrumentation:
 .\renode\run.ps1 -Config Debug -Headless -ProfilerSocketPort 3456
 ```
 
-Or use the explicitly scoped call sites:
+Or use the instrumented Measure preset:
 
 ```powershell
 .\build.bat Measure

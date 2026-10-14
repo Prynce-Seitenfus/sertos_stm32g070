@@ -28,8 +28,7 @@
             "name": "Measure",
             "inherits": "Debug",
             "cacheVariables": {
-                "SERTOS_APP_INSTRUMENTED": "OFF",
-                "PROFILER_APP_SCOPES": "ON"
+                "SERTOS_APP_INSTRUMENTED": "ON"
             }
         }
     ],

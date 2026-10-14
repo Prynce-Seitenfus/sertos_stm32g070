@@ -4,14 +4,12 @@
 .DESCRIPTION
     Thin wrapper around <sewcet>/tools/run_wcet.ps1. The sewcet workspace is
     $env:SEWCET_DIR, or ..\..\sewcet next to this repository.
-    -Config selects the project config: wcet_targets.json (instrumented Debug
-    build, default) or wcet_measure.json (uninstrumented Measure build with
-    explicit profiler scopes).
+    -Config selects the project config. wcet_targets.json (instrumented Debug
+    build) is the current default.
 .EXAMPLE
     .\sewcet\run_wcet.ps1
     .\sewcet\run_wcet.ps1 -Model generic
     .\sewcet\run_wcet.ps1 -Elf .\build\Release\sertos_stm32g070.elf
-    .\sewcet\run_wcet.ps1 -Config wcet_measure.json
 #>
 [CmdletBinding()]
 param(

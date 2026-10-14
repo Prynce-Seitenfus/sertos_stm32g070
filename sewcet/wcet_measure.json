@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "description": "OTAWA static WCET targets for the uninstrumented Measure build of sertos_stm32g070 (explicit profiler scopes, captures ../1m.csv).",
+    "description": "Historical WCET configuration for the retired scope-based Measure build and its ../1m.csv capture. Current Measure builds use compiler instrumentation; see wcet_targets.json for the current profiler model.",
     "elf": "../build/Measure/sertos_stm32g070.elf",
     "output_csv": "1mw.csv",
     "comparison_csv": "comparison_measure.csv",
@@ -69,7 +69,7 @@
             "profiler_scope_enter",
             "profiler_scope_exit"
         ],
-        "notes": "Measure build (PROFILER_APP_SCOPES=ON): no -finstrument-functions. Scopes wrap the call sites, so a measured function contains only the probes of nested scopes (sertos_demo_queue_* and sertos_demo_queue_init). The profiler subtracts their bookkeeping from the enclosing scope (nested_overhead), so the probes are excluded here (nocall). Their own WCET is analysed as interference (interference_functions)."
+        "notes": "Historical configuration for the retired explicit-scope build. Current profiler releases removed scope APIs; this file's flow facts and captures do not describe current Measure firmware. Use wcet_targets.json for current compiler-instrumented firmware."
     },
     "flow_facts": {
         "multicalls": [
@@ -409,5 +409,5 @@
     ],
     "interference_notes": "Analysed by wcet_csv.py (rows appended to 1w.csv) but not compared against captures. Entries with period_cycles are periodic ISRs used by compare_csv.py as ceil(R_post / period) + 1 activations in the response-time bound. USART2 and DMA ISRs only run while a dump command is being served and are excluded.",
     "blocking_bound_notes": "Response-time bound for WALL-mode captures of blocking functions: R = blocked_ticks * cpu_clock_hz / tick_hz + R_post, with R_post = WCET(self) + sum(count * WCET(function)) + extra_cycles + sum over periodic ISRs of (ceil(R_post / period_cycles) + 1) * WCET(isr), iterated to a fixed point. compare_csv.py checks target WALL max <= R.",
-    "measured_includes_blocking_notes": "WALL-mode captures (PROFILER_APP_TIME_MODE=WALL, default) of these functions include the time the task is blocked (queue wait or delay). compare_csv.py checks their ACTIVE-mode maximum (--target-active, 1a.csv) against the WCET and their WALL maximum against the blocking_bound response-time bound."
+    "measured_includes_blocking_notes": "Historical scope-build captures only. The current profiler reports ACTIVE CPU cycles and excludes the interval while a task is switched out; current blocking-call comparisons are documented by wcet_targets.json."
 }

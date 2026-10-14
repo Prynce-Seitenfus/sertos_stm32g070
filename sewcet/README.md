@@ -23,6 +23,7 @@ Inside WSL: `bash /mnt/c/github/sewcet/tools/run_wcet.sh sewcet/wcet_targets.jso
 | File | Purpose |
 |---|---|
 | `wcet_targets.json` | Target functions, ELF, capture paths, timing model, justified flow facts (loop bounds, indirect call targets), response-time bound specs |
+| `wcet_measure.json` | Historical scope-based Measure config; its flow facts and captures are not valid for current firmware |
 | `run_wcet.ps1` | Wrapper around the sewcet tools for this config |
 | `1w.csv` | WCET per function in profiler-CSV columns (generated) |
 | `comparison.csv` | Target / Renode / WCET comparison (generated) |
@@ -42,10 +43,10 @@ Column and status legend: `<sewcet>/tools/README.md`.
   `wcet_over_exec_max` shows how pessimistic the bound is.
   `target_avg_cycles` and `renode_max_cycles` are informational (Renode is not
   cycle-accurate).
-- The current profiler library reports ACTIVE cycles and uses one shadow stack
-  per task; time spent while a task is switched out is excluded. Its dump header
-  records the mode. The previous WALL/ACTIVE capture pairs are historical; the
-  current firmware cannot generate WALL captures.
+- The current profiler library reports ACTIVE cycles and keeps a shadow stack
+  per execution context; time spent while a task is switched out is excluded.
+  Its dump header records the mode. The previous WALL/ACTIVE capture pairs are
+  historical; the current firmware cannot generate WALL captures.
 - Current captures can check execution time: `target_active_max_cycles`
   (`captures.target_active`) must not exceed `wcet_cycles` (`VIOLATION`).
   WALL-based response-time checks for blocking calls require separate WALL
@@ -75,7 +76,9 @@ Column and status legend: `<sewcet>/tools/README.md`.
 
 ## After rebuilding the firmware
 
-Loop offsets and `elf_checksum` are tied to one binary. After a rebuild:
+Loop offsets and `elf_checksum` are tied to one binary. The checked-in
+`wcet_targets.json` values predate the latest profiler sync and must be refreshed
+before using its WCET results. After a rebuild:
 
 1. Run `mkff $ELF <functions...>` (with `otawa-env.sh` sourced), then
    update `elf_checksum` and the `offset` values in `wcet_targets.json`.

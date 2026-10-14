@@ -44,11 +44,13 @@ goto :parse_args
 
 :parse_measure
 set "BUILD_CONFIG=Measure"
+set "INSTRUMENTED=ON"
 shift
 goto :parse_args
 
 :parse_measure_flag
 set "BUILD_CONFIG=Measure"
+set "INSTRUMENTED=ON"
 shift
 goto :parse_args
 
@@ -121,7 +123,7 @@ echo.
 echo Options:
 echo   Debug          Build the Debug preset (default)
 echo   Release        Build the Release preset
-echo   Measure        Build the Measure preset (uninstrumented, scoped)
+echo   Measure        Build the Measure preset with compiler instrumentation
 echo   -c             Clean the selected preset outputs before building
 echo   -i             Build the instrumented SertOS library and instrument selected app sources
 echo   -m             Select the Measure preset
